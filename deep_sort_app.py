@@ -228,10 +228,15 @@ def parse_args():
     parser.add_argument(
         "--detection_file", help="Path to custom detections.", default=None,
         required=True)
+    # edit by cws
+    # parser.add_argument(
+    #     "--output_file", help="Path to the tracking output file. This file will"
+    #     " contain the tracking results on completion.",
+    #     default="/tmp/hypotheses.txt")
     parser.add_argument(
         "--output_file", help="Path to the tracking output file. This file will"
         " contain the tracking results on completion.",
-        default="/tmp/hypotheses.txt")
+        default="hypotheses.txt")
     parser.add_argument(
         "--min_confidence", help="Detection confidence threshold. Disregard "
         "all detections that have a confidence lower than this value.",

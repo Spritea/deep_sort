@@ -87,3 +87,9 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+#by cws
+.idea/
+resources/
+MOT16/
+MOT16.zip

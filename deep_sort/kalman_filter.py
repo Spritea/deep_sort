@@ -117,6 +117,7 @@ class KalmanFilter(object):
         motion_cov = np.diag(np.square(np.r_[std_pos, std_vel]))
 
         mean = np.dot(self._motion_mat, mean)
+        #np.linalg.multi_dot用于多个矩阵连续相乘
         covariance = np.linalg.multi_dot((
             self._motion_mat, covariance, self._motion_mat.T)) + motion_cov
 
@@ -173,14 +174,33 @@ class KalmanFilter(object):
         """
         projected_mean, projected_cov = self.project(mean, covariance)
 
+        #以下2步是用cholesky分解，解线性方程组AX=B中的X，X即为A的逆乘B
+        #A为projected_cov，B为np.dot(covariance, self._update_mat.T).T
+        #这里的kaiman_gain是X还取了个转置scipy.linalg.cho_solve().T
         chol_factor, lower = scipy.linalg.cho_factor(
             projected_cov, lower=True, check_finite=False)
         kalman_gain = scipy.linalg.cho_solve(
             (chol_factor, lower), np.dot(covariance, self._update_mat.T).T,
             check_finite=False).T
         innovation = measurement - projected_mean
-
+        #(A*B.T).T=B*A.T,当A*B.T结果为一维数组，在numpy中一维数组取转置不起作用，还是自身
+        #所以A*B.T=(A*B.T).T=B*A.T
+        #即这里的np.dot(innovation, kalman_gain.T)就是np.dot(kalman_gain,innovation.T)
+        #innovation又是一维数组，取转置没影响，所以innovation.T=innovation
+        #写在一起，有np.dot(innovation, kalman_gain.T)=np.dot(kalman_gain,innovation.T)
+        #=np.dot(kalman_gain,innovation),最后的式子就是kalman滤波器中的标准公式
         new_mean = mean + np.dot(innovation, kalman_gain.T)
+        #这个multi_dot指的是K*S*K.T,见chrome收藏的网页
+        #zhuanlan.zhihu.com/p/45238681
+        #S=H*P'*H.T+R,K=P'*H.T*S.-1,S.-1是S的逆矩阵
+        #K*S*K.T=P'*H.T*S.-1*S*K.T=P'*H.T*K.T
+        #在标准式子中，这个multi_dot是K*H*P'
+        #所以要证明P'*H.T*K.T=K*H*P'
+        #即要证明P'*H.T*K.T的结果是个对称阵，并且P'是对称阵
+        #对于P'=F*P*F.T+Q,P'确实是对称阵(用例子算出来的)，虽然第一次predict后就不是对角阵了
+        #S=H*P'*H.T+R过程中一直是对角阵，K=P'*H.T*S.-1，K的形式也没变过
+        #对于P'*H.T*K.T的结果，确实是对称阵(也用例子算出来的，再加上K的形式没变)
+        #所以P'*H.T*K.T=K*H*P'成立
         new_covariance = covariance - np.linalg.multi_dot((
             kalman_gain, projected_cov, kalman_gain.T))
         return new_mean, new_covariance
@@ -219,11 +239,27 @@ class KalmanFilter(object):
         if only_position:
             mean, covariance = mean[:2], covariance[:2, :2]
             measurements = measurements[:, :2]
-
+        #cholesky分解，得L*L.T=S，L为下三角阵
+        #这里的S就是论文中的S_i
         cholesky_factor = np.linalg.cholesky(covariance)
+        #measurements维度(11,4),mean(4,),d(11,4)
+        #这里的d就是deep sort论文中的d_j-y_i
+        #本来d应该是(4,1)的列向量，只包含一个检测器得到的检测框
+        #但这里mearuments包含该帧所有检测框，且为行向量，所以d为(11,4)
+        #此时论文中公式要改为(d_j-y_i)*S_i(-1)*(d_j-y_i).T
+        #代入d，得d*S_i.(-1)*d.T,即d*S*d.T=d*(L*L.T).(-1)*d.T
+        #即=d*(L.T).(-1)*L.(-1)*d.T
         d = measurements - mean
+        #解方程cholesky_factor*z=d.T,需cholesky_factor为三角阵
+        #即L*z=d.T,z=L.(-1)*d.T
         z = scipy.linalg.solve_triangular(
             cholesky_factor, d.T, lower=True, check_finite=False,
             overwrite_b=True)
+        #当d只处理1个检测框时，z为(4,1)
+        #z.T*z=(L.(-1)*d.T).T*L.(-1)*d.T=d*L.(-1).T*L.(-1)*d.T
+        #故z.T*z为论文中的d*S_i.(-1)*d.T，计算上z.T*z也就是各个元素平方然后求和
+        #但当d处理多个检测框时，如d为(1,4),z为(4,11)
+        #下面这个写成np.sum形式，先平方再对各列求和
+        #这样就同时计算一个track的预测值和一帧上所有检测框的马氏距离
         squared_maha = np.sum(z * z, axis=0)
         return squared_maha
