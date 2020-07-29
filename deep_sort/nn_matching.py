@@ -23,6 +23,7 @@ def _pdist(a, b):
     if len(a) == 0 or len(b) == 0:
         return np.zeros((len(a), len(b)))
     a2, b2 = np.square(a).sum(axis=1), np.square(b).sum(axis=1)
+    #None就是在该维新增了一个维度，等价于numpy.newaxis
     r2 = -2. * np.dot(a, b.T) + a2[:, None] + b2[None, :]
     r2 = np.clip(r2, 0., float(np.inf))
     return r2
@@ -48,6 +49,9 @@ def _cosine_distance(a, b, data_is_normalized=False):
         contains the squared distance between `a[i]` and `b[j]`.
 
     """
+    #np.linalg.norm(a, axis=1, keepdims=True)
+    #矩阵a每个行向量求向量的2范数，也就是向量的模
+    #np.asarray(a) / np.linalg.norm就是对向量a归一化
     if not data_is_normalized:
         a = np.asarray(a) / np.linalg.norm(a, axis=1, keepdims=True)
         b = np.asarray(b) / np.linalg.norm(b, axis=1, keepdims=True)
@@ -147,10 +151,16 @@ class NearestNeighborDistanceMetric(object):
             A list of targets that are currently present in the scene.
 
         """
+        # self.samples.setdefault(target, [])
+        # 当target为空，给target对应的value设为[]
+        # 当target不为空，返回target对应的value
+        # .append(feature)是target对应的value(某个list)的操作
         for feature, target in zip(features, targets):
             self.samples.setdefault(target, []).append(feature)
             if self.budget is not None:
                 self.samples[target] = self.samples[target][-self.budget:]
+        #意思是只保留active_targets的track和对应历史appearance的feature
+        #active_targets即为confirmed了的track
         self.samples = {k: self.samples[k] for k in active_targets}
 
     def distance(self, features, targets):

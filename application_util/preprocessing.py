@@ -55,7 +55,7 @@ def non_max_suppression(boxes, max_bbox_overlap, scores=None):
         last = len(idxs) - 1
         i = idxs[last]
         pick.append(i)
-
+        a1=x1[idxs[:last]]
         xx1 = np.maximum(x1[i], x1[idxs[:last]])
         yy1 = np.maximum(y1[i], y1[idxs[:last]])
         xx2 = np.minimum(x2[i], x2[idxs[:last]])
@@ -64,8 +64,12 @@ def non_max_suppression(boxes, max_bbox_overlap, scores=None):
         w = np.maximum(0, xx2 - xx1 + 1)
         h = np.maximum(0, yy2 - yy1 + 1)
 
+        #iou=(w * h) / (area[idxs[:last]]+area[i]-w*h)
+        #上面这个才是iou，下面这个overlap不是iou，只是交集占bbox面积的比例
         overlap = (w * h) / area[idxs[:last]]
-
+        #np.where(overlap > max_bbox_overlap)得到的是tuple，包含ndarray
+        #np.where(overlap > max_bbox_overlap)[0]是为了把这个ndarray取出来
+        #得到的是一个ndarray，才能拿去做concatanate
         idxs = np.delete(
             idxs, np.concatenate(
                 ([last], np.where(overlap > max_bbox_overlap)[0])))

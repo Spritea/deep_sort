@@ -245,6 +245,7 @@ def parse_args():
         "--min_detection_height", help="Threshold on the detection bounding "
         "box height. Detections with height smaller than this value are "
         "disregarded", default=0, type=int)
+    #默认就没有用NMS，因重叠阈值是1.0，即只处理完全重叠的bbox
     parser.add_argument(
         "--nms_max_overlap",  help="Non-maxima suppression threshold: Maximum "
         "detection overlap.", default=1.0, type=float)

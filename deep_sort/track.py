@@ -76,7 +76,8 @@ class Track:
         self.features = []
         if feature is not None:
             self.features.append(feature)
-
+        #单下划线开头为protected成员
+        #双下划线开头为private成员
         self._n_init = n_init
         self._max_age = max_age
 

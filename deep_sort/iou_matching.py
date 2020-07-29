@@ -31,6 +31,7 @@ def iou(bbox, candidates):
                np.maximum(bbox_tl[1], candidates_tl[:, 1])[:, np.newaxis]]
     br = np.c_[np.minimum(bbox_br[0], candidates_br[:, 0])[:, np.newaxis],
                np.minimum(bbox_br[1], candidates_br[:, 1])[:, np.newaxis]]
+    #这里去负数是因为当两个框无交集时，br-tl会出现负值
     wh = np.maximum(0., br - tl)
 
     area_intersection = wh.prod(axis=1)
@@ -71,11 +72,13 @@ def iou_cost(tracks, detections, track_indices=None,
 
     cost_matrix = np.zeros((len(track_indices), len(detection_indices)))
     for row, track_idx in enumerate(track_indices):
+        #IOU匹配只处理当前帧用appearance没匹配上的，历史帧不管
         if tracks[track_idx].time_since_update > 1:
             cost_matrix[row, :] = linear_assignment.INFTY_COST
             continue
 
         bbox = tracks[track_idx].to_tlwh()
         candidates = np.asarray([detections[i].tlwh for i in detection_indices])
+        #iou值越大的，cost越小，所以要1-iou(bbox, candidates)
         cost_matrix[row, :] = 1. - iou(bbox, candidates)
     return cost_matrix

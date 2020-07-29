@@ -124,7 +124,7 @@ def matching_cascade(
     for level in range(cascade_depth):
         if len(unmatched_detections) == 0:  # No detections left
             break
-
+        #只对该次循环对应level的track进行处理
         track_indices_l = [
             k for k in track_indices
             if tracks[k].time_since_update == 1 + level
@@ -140,7 +140,7 @@ def matching_cascade(
     unmatched_tracks = list(set(track_indices) - set(k for k, _ in matches))
     return matches, unmatched_tracks, unmatched_detections
 
-
+#把普通代价矩阵改造为经马氏距离限制后的代价矩阵
 def gate_cost_matrix(
         kf, cost_matrix, tracks, detections, track_indices, detection_indices,
         gated_cost=INFTY_COST, only_position=False):

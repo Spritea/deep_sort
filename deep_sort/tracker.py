@@ -79,6 +79,10 @@ class Tracker:
         self.tracks = [t for t in self.tracks if not t.is_deleted()]
 
         # Update distance metric.
+        #target指的track的编号id
+        #feature是先用检测器得到的bbox，再用reid模型对bbox提appearance特征
+        #active_targets就是confirmed了的track
+        #算appearance的cos距离时，feature只与这些confirmed track对应的历史appearance找对应
         active_targets = [t.track_id for t in self.tracks if t.is_confirmed()]
         features, targets = [], []
         for track in self.tracks:
@@ -115,6 +119,9 @@ class Tracker:
                 self.tracks, detections, confirmed_tracks)
 
         # Associate remaining tracks together with unconfirmed tracks using IOU.
+        #IOU匹配只处理当前帧用appearance没匹配上的，历史帧不管
+        #这里的self.tracks[k].time_since_update != 1就是>1的意思
+        #因为predict后time_since_update至少为1
         iou_track_candidates = unconfirmed_tracks + [
             k for k in unmatched_tracks_a if
             self.tracks[k].time_since_update == 1]

@@ -1,0 +1,5 @@
+1.直接跑python deep_sort_app.py
+默认是用的POI论文做的检测+reid提特征
+2.跑python tools/generate_detections.py
+是用MOT官方提供的检测子做检测+reid提特征
+reid网络在这两种情况下是没变的
