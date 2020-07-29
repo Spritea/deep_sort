@@ -191,12 +191,18 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
             vis.draw_trackers(tracker.tracks)
 
         # Store results.
+        #这里存结果的时候if not track.is_confirmed() or track.time_since_update > 1:
+        #存了track.time_since_update=1的track，不知道这类track有啥用，反正导出的文件随便存
+        #但在可视化的时候，即vis.draw_trackers(tracker.tracks)，这里面代码是
+        #if not track.is_confirmed() or track.time_since_update > 0:
+        #只画了一直在更新的track，这是想要的
         for track in tracker.tracks:
             if not track.is_confirmed() or track.time_since_update > 1:
                 continue
             bbox = track.to_tlwh()
             results.append([
                 frame_idx, track.track_id, bbox[0], bbox[1], bbox[2], bbox[3]])
+        print('kk')
 
     # Run tracker.
     if display:

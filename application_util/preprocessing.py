@@ -44,7 +44,10 @@ def non_max_suppression(boxes, max_bbox_overlap, scores=None):
     y1 = boxes[:, 1]
     x2 = boxes[:, 2] + boxes[:, 0]
     y2 = boxes[:, 3] + boxes[:, 1]
-
+    #我觉得加1是为了在算iou的时候，避免分母为0
+    #否则当x2=x1或y2=y1的时候(可能是标注导致的)
+    #1.这个code中的area[idxs[:last]]会变为0
+    #2.且两个bbox无交集时，iou的分母会变成0
     area = (x2 - x1 + 1) * (y2 - y1 + 1)
     if scores is not None:
         idxs = np.argsort(scores)
@@ -55,7 +58,6 @@ def non_max_suppression(boxes, max_bbox_overlap, scores=None):
         last = len(idxs) - 1
         i = idxs[last]
         pick.append(i)
-        a1=x1[idxs[:last]]
         xx1 = np.maximum(x1[i], x1[idxs[:last]])
         yy1 = np.maximum(y1[i], y1[idxs[:last]])
         xx2 = np.minimum(x2[i], x2[idxs[:last]])
